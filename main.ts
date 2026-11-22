@@ -48,9 +48,27 @@ if (typeof parsed.url !== 'string' || !YOUTUBE_URL.test(parsed.url)) {
 }
 
 mkdirSync(OUTPUT_DIR, { recursive: true });
+const outputPath = join(OUTPUT_DIR, 'VIDEO.json');
 try {
-  copyFileSync(sourcePath, join(OUTPUT_DIR, 'VIDEO.json'));
+  copyFileSync(sourcePath, outputPath);
 } catch (err) {
   console.error(`VIDEO.json could not be copied from ${BOT_DIR}: ${String(err)}`);
+  process.exit(1);
+}
+
+// The copy is the entry the house scores, so read it back and confirm it is
+// exactly the address that was checked above: it must parse as JSON and its
+// url must match the source file's url, or the run fails loudly instead of
+// handing over a stale or broken file.
+let copied;
+try {
+  copied = JSON.parse(readFileSync(outputPath, 'utf8'));
+} catch {
+  console.error('copied VIDEO.json is not valid JSON');
+  process.exit(1);
+}
+
+if (copied === null || typeof copied !== 'object' || copied.url !== parsed.url) {
+  console.error('copied VIDEO.json does not match the source VIDEO.json');
   process.exit(1);
 }
